@@ -25,6 +25,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -170,10 +171,15 @@ public class GDriveBackupManager {
                     if (names == null)
                         return;
 
+                    // Backups don't contain sign-in tokens. Keep the current ones.
+                    Map<String, byte[]> credentials = BackupCredentials.snapshot(new File(mFilesDir));
+
                     // remove old data
                     for (String dataDir : mDataDirs) {
                         FileHelpers.delete(dataDir);
                     }
+
+                    BackupCredentials.restoreMissing(new File(mFilesDir), credentials);
 
                     for (String name : names) {
                         if (name == null)
@@ -206,6 +212,9 @@ public class GDriveBackupManager {
 
                     File sharedPrefs = new File(mSharedPrefs);
 
+                    // Backups don't contain sign-in tokens. Keep the current ones.
+                    Map<String, byte[]> credentials = BackupCredentials.snapshot(new File(mFilesDir));
+
                     // remove old data
                     for (String dataDir : mDataDirs) {
                         FileHelpers.delete(dataDir);
@@ -217,6 +226,7 @@ public class GDriveBackupManager {
                         ZipHelper.unzipToFolder(zipFile, sharedPrefs);
                     }
                     fixFileNames(sharedPrefs);
+                    BackupCredentials.restoreMissing(new File(mFilesDir), credentials);
 
                     // NOTE: Don't restart the app, just kill. The reboot will broke the files.
                     // To apply settings we need to kill the app

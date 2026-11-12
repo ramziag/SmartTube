@@ -197,7 +197,10 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
 
         if (mFilesDir.isDirectory() && !FileHelpers.isEmpty(mFilesDir)) {
             File destination = new File(target, mFilesDir.getName());
-            FileHelpers.copy(mFilesDir, destination, null, dir -> Helpers.equalsAny(dir.getName(), Utils.BACKUP_DIRS));
+            // Don't store sign-in tokens: the backup lands on shared storage and Google Drive
+            FileHelpers.copy(mFilesDir, destination,
+                    file -> !BackupCredentials.isCredential(mFilesDir, file),
+                    dir -> Helpers.equalsAny(dir.getName(), Utils.BACKUP_DIRS));
         }
     }
 
