@@ -90,7 +90,13 @@ public class GDriveBackupWorker extends Worker {
     public static void cancel(Context context) {
         RxHelper.disposeActions(sAction);
 
-        if (VERSION.SDK_INT >= 23 && GeneralData.instance(context).getGDriveBackupFreqDays() > 0) {
+        cancelWork(context);
+    }
+
+    private static void cancelWork(Context context) {
+        // NOTE: don't check the backup frequency here.
+        // Settings store the new value ("None" = -1) before cancelling, so such check would skip the cancellation.
+        if (VERSION.SDK_INT >= 23) {
             Log.d(TAG, "Unregistering worker job...");
 
             SafeWorkManager workManager = SafeWorkManager.getInstance(context);
@@ -101,6 +107,14 @@ public class GDriveBackupWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        if (GeneralData.instance(getApplicationContext()).getGDriveBackupFreqDays() <= 0) {
+            // Auto backup is off, but the job is still registered (e.g. left over by an older version).
+            // NOTE: don't dispose sAction here. It may be a fresh forceSchedule() call.
+            Log.d(TAG, "Auto backup disabled. Unregistering leftover worker job...");
+            cancelWork(getApplicationContext());
+            return Result.success();
+        }
+
         if (BackupSettingsPresenter.hasInstance()) {
             return Result.retry();
         }
